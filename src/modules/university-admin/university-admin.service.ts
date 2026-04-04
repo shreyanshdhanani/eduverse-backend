@@ -7,7 +7,7 @@ import { MailerService } from '@nestjs-modules/mailer';
 
 import * as fs from 'fs';
 import * as path from 'path';
-import * as pdf from 'html-pdf-node';
+import * as PDFDocument from 'pdfkit';
 import { Subscription } from 'src/schema/university-subscription.schema';
 import { JwtService } from '@nestjs/jwt';
 import { StudentService } from '../student/student.service';
@@ -164,72 +164,70 @@ private readonly jwtService: JwtService) {}
           throw new NotFoundException("No universities found");
         }
     
-        // ✅ Define the path to save the PDF
         const pdfPath = path.join(__dirname, "..", "..", "..", "upload", "universities.pdf");
-    
-        // ✅ Generate Table Rows Dynamically
-        const tableRows = universities
-          .map(
-            (university, index) => `
-              <tr style="background-color: ${index % 2 === 0 ? "#f9f9f9" : "#ffffff"};">
-                  <td>${university.universityName}</td>
-                  <td>${university.email}</td>
-                  <td>${university.contactNumber}</td>
-                  <td>${university.approvalStatus}</td>
-              </tr>`
-          )
-          .join("");
-    
-        // ✅ Full HTML with Professional Design
-        const html = `
-          <html>
-              <head>
-                  <style>
-                      body { font-family: 'Arial', sans-serif; padding: 20px; background-color: #f4f6f9; }
-                      .container { max-width: 800px; margin: auto; background: white; padding: 20px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-                      h1 { text-align: center; color: #2a2a2a; font-size: 24px; margin-bottom: 10px; }
-                      .header { display: flex; justify-content: space-between; align-items: center; }
-                      .header img { width: 120px; }
-                      .footer { text-align: center; font-size: 12px; margin-top: 20px; color: #666; }
-                      table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-                      th, td { padding: 10px; border: 1px solid #ddd; text-align: left; }
-                      th { background-color: #007bff; color: white; font-weight: bold; }
-                      tr:hover { background-color: #f1f1f1; }
-                  </style>
-              </head>
-              <body>
-                  <div class="container">
-                      <div class="header">
-                          <h1 style="font-size: 24px; font-weight: bold;">
-                               <span style="color: black; display: inline-block; margin-right: -2px;">E</span>
-                                <span style="color: #9333ea;">duverse</span>
+        
+        return new Promise((resolve, reject) => {
+            const doc = new PDFDocument();
+            const writeStream = fs.createWriteStream(pdfPath);
+            
+            doc.pipe(writeStream);
 
-                            </h1>
-                          <h1>University List</h1>
-                      </div>
-                      <table>
-                          <tr>
-                              <th>University Name</th>
-                              <th>Email</th>
-                              <th>Contact</th>
-                              <th>Status</th>
-                          </tr>
-                          ${tableRows}
-                      </table>
-                      <div class="footer">
-                          Generated on: ${new Date().toLocaleString()} | © 2025 EduVerse Ltd.
-                      </div>
-                  </div>
-              </body>
-          </html>`;
-    
-        // ✅ Convert HTML to PDF and Save
-        const file = { content: html };
-        await pdf.generatePdf(file, { format: "A4" }).then((buffer) => {
-          fs.writeFileSync(pdfPath, buffer);
+            // Title
+            doc.fontSize(24).fillColor('#000000').text('E', { continued: true });
+            doc.fillColor('#9333ea').text('duverse', { continued: false });
+            doc.fontSize(20).fillColor('#000000').text('University List', { align: 'center' });
+            doc.moveDown();
+
+            // Table Header
+            const startX = 50;
+            let startY = doc.y;
+            const columnWidths = [150, 150, 100, 100];
+            
+            doc.fontSize(12).fillColor('white').rect(startX, startY, 500, 20).fill('#007bff');
+            doc.fillColor('white');
+            doc.text('University Name', startX + 5, startY + 5);
+            doc.text('Email', startX + 155, startY + 5);
+            doc.text('Contact', startX + 305, startY + 5);
+            doc.text('Status', startX + 405, startY + 5);
+            
+            startY += 20;
+
+            // Table Rows
+            doc.fillColor('black');
+            universities.forEach((university, index) => {
+                // Alternating background
+                if (index % 2 === 0) {
+                    doc.rect(startX, startY, 500, 20).fill('#f9f9f9');
+                }
+                
+                doc.fillColor('black');
+                doc.text(university.universityName || '', startX + 5, startY + 5, { width: 140, height: 15, ellipsis: true });
+                doc.text(university.email || '', startX + 155, startY + 5, { width: 140, height: 15, ellipsis: true });
+                doc.text(university.contactNumber || '', startX + 305, startY + 5, { width: 90, height: 15, ellipsis: true });
+                doc.text(university.approvalStatus || '', startX + 405, startY + 5, { width: 90, height: 15, ellipsis: true });
+                
+                startY += 20;
+
+                // Add pagination if needed
+                if (startY > 700) {
+                    doc.addPage();
+                    startY = 50;
+                }
+            });
+
+            // Footer
+            doc.fontSize(10).fillColor('#666666').text(
+                `Generated on: ${new Date().toLocaleString()} | © 2025 EduVerse Ltd.`,
+                50, 
+                startY + 20, 
+                { align: 'center' }
+            );
+
+            doc.end();
+
+            writeStream.on('finish', () => resolve(pdfPath));
+            writeStream.on('error', (err) => reject(err));
         });
-    
-        return pdfPath;
       }
     
 }

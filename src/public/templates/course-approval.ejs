@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Course Approval Notification</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f9;
+      color: #333;
+      padding: 20px;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+      text-align: center;
+    }
+    .logo {
+      font-size: 28px;
+      font-weight: bold;
+    }
+    .logo span {
+      font-size: 28px;
+      font-weight: bold;
+    }
+    .black {
+      color: black;
+    }
+    .purple {
+      color: #6b46c1;
+    }
+    h1 {
+      font-size: 22px;
+      margin-top: 20px;
+      font-weight: bold;
+    }
+    p {
+      font-size: 16px;
+      line-height: 1.6;
+    }
+    .cta-button {
+      display: inline-block;
+      background-color: #6b46c1;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 5px;
+      font-size: 16px;
+      font-weight: bold;
+      text-decoration: none;
+      margin-top: 20px;
+    }
+    .cta-button:hover {
+      background-color: #5a3aa9;
+    }
+    .footer {
+      margin-top: 30px;
+      font-size: 14px;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- EduVerse Logo -->
+    <div class="logo">
+      <span class="black">E</span><span class="purple">duverse</span>
+    </div>
+
+    <h1>Course Approval Notification</h1>
+
+    <p>Dear <%= providerName %>,</p>
+
+    <p>We are pleased to inform you that your course titled "<%= courseTitle %>" has been approved and is now live on <strong>EduVerse</strong>. Congratulations on this milestone!</p>
+
+    <p>Our team has thoroughly reviewed your course, and we believe it will be a valuable addition to our learning community. Thank you for your dedication and effort in creating this course.</p>
+
+    <p>If you have any questions or need support, feel free to reach out to us.</p>
+
+    <p>Click below to view and manage your course:</p>
+
+    <a href="<%= courseLink %>" class="cta-button">View Your Course</a>
+
+    <div class="footer">
+      <p>Best Regards,</p>
+      <p><strong>EduVerse Team</strong></p>
+      <p><a href="mailto:support@eduverse.com" style="color: #6b46c1;">support@eduverse.com</a></p>
+    </div>
+  </div>
+</body>
+</html>

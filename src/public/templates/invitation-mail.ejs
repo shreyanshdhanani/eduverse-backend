@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduVerse Invitation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        .logo {
+            text-align: center;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .logo span {
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .black {
+            color: black;
+        }
+        .purple {
+            color: #6b46c1;
+        }
+        .header {
+            text-align: center;
+            font-size: 20px;
+            margin-top: 20px;
+            font-weight: bold;
+        }
+        .content {
+            font-size: 16px;
+            line-height: 1.6;
+            margin-top: 20px;
+        }
+        .cta-button {
+            display: block;
+            width: 200px;
+            text-align: center;
+            background-color: #6b46c1;
+            color: white;
+            padding: 12px;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: bold;
+            text-decoration: none;
+            margin: 20px auto;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 14px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- EduVerse Logo -->
+        <div class="logo">
+            <span class="black">E</span><span class="purple">duverse</span>
+        </div>
+
+        <div class="header">You're Invited to Join EduVerse!</div>
+
+        <div class="content">
+            <p>Dear <strong><%= studentName %></strong>,</p>
+            <p>We are excited to invite you to <strong>EduVerse</strong>, your new platform for learning and collaboration.</p>
+            <p>Your university has enrolled you, and you can start exploring courses, resources, and more.</p>
+
+            <p><strong>Your Login Credentials:</strong></p>
+            <ul>
+                <li><strong>Email:</strong> <%= studentEmail %></li>
+                <li><strong>Temporary Password:</strong> <span style="color: #6b46c1;">password@123</span></li>
+            </ul>
+
+            <p>To get started, click the button below and log in to your EduVerse account.</p>
+
+            <a href="https://eduverse.com/login" class="cta-button">Login Now</a>
+
+            <p>For security reasons, please change your password after logging in.</p>
+
+            <p>If you have any questions, feel free to reach out to us.</p>
+
+            <p>Best Regards,<br><strong>EduVerse Team</strong></p>
+        </div>
+
+        <div class="footer">
+            &copy; <%= new Date().getFullYear() %> EduVerse. All rights reserved.
+        </div>
+    </div>
+
+</body>
+</html>

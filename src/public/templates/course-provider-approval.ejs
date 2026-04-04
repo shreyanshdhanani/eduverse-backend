@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Course Provider Approval Notification</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .logo span {
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .black {
+            color: black;
+        }
+        .purple {
+            color: #6b46c1;
+        }
+        h1 {
+            font-size: 22px;
+            margin-top: 20px;
+            font-weight: bold;
+        }
+        p {
+            font-size: 16px;
+            line-height: 1.6;
+        }
+        .status-badge {
+            display: inline-block;
+            background: #28a745;
+            color: white;
+            padding: 10px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 5px;
+            margin-top: 15px;
+        }
+        .cta-button {
+            display: inline-block;
+            background-color: #6b46c1;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: bold;
+            text-decoration: none;
+            margin-top: 20px;
+        }
+        .cta-button:hover {
+            background-color: #5a3aa9;
+        }
+        .footer {
+            margin-top: 30px;
+            font-size: 14px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- EduVerse Logo -->
+        <div class="logo">
+            <span class="black">E</span><span class="purple">duverse</span>
+        </div>
+
+        <h1>Congratulations, <%= name %>!</h1>
+        <p>Your application as a Course Provider at <strong>EduVerse</strong> has been <strong>approved</strong>. You can now access your dashboard and start creating courses.</p>
+        
+        <span class="status-badge">Approved</span>
+
+        <p>Click the button below to access your provider dashboard and manage your courses.</p>
+        
+        <a href="<%= dashboardLink %>" class="cta-button">Go to Dashboard</a>
+
+        <p class="footer">If you have any questions, feel free to contact our support team at <a href="mailto:support@eduverse.com" style="color: #6b46c1;">support@eduverse.com</a>.</p>
+    </div>
+
+</body>
+</html>

@@ -241,13 +241,18 @@ export class CourseProviderService {
     if (status === 'Approved') {
       const courseProvider = await this.courseProviderModel.findById(id);
       if (courseProvider?._id) {
-        const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
-        await this.mailService.sendMail({
-          to: courseProvider.email,
-          subject: 'Your Account Has Been Approved!',
-          template: 'course-provider-approval',
-          context: { name: courseProvider.name, dashboardLink: frontendUrl },
-        });
+        try {
+          const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+          await this.mailService.sendMail({
+            to: courseProvider.email,
+            subject: 'Your Account Has Been Approved!',
+            template: 'course-provider-approval',
+            context: { name: courseProvider.name, dashboardLink: frontendUrl },
+          });
+          console.log(`✅ Approval email sent to: ${courseProvider.email}`);
+        } catch (mailError) {
+          console.error(`❌ Failed to send approval email to ${courseProvider.email}:`, mailError);
+        }
       }
     }
     return updateStatus;

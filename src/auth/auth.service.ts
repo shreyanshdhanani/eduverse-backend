@@ -171,12 +171,17 @@ export class AuthService {
     const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
     const resetLink = `${frontendUrl}/reset-password?token=${token}`;
 
-    await this.mailService.sendMail({
-      to: user.email,
-      subject: 'Reset Your Password',
-      template: 'forgot-password',
-      context: { name: user.name, resetLink },
-    });
+    try {
+      await this.mailService.sendMail({
+        to: user.email,
+        subject: 'Reset Your Password',
+        template: 'forgot-password',
+        context: { name: user.name, resetLink },
+      });
+      console.log(`✅ Forgot password email sent to: ${user.email}`);
+    } catch (mailError) {
+      console.error(`❌ Failed to send forgot password email to ${user.email}:`, mailError);
+    }
 
     return { message: 'Password reset link sent to your email.' };
   }

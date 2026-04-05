@@ -55,9 +55,13 @@ import { CmsModule } from './modules/cms/cms.module';
         transport: {
           host: configService.get<string>('MAIL_HOST'),
           port: configService.get<number>('MAIL_PORT'),
+          secure: false, // Port 587 requires STARTTLS, so secure must be false
           auth: {
             user: configService.get<string>('MAIL_USER'),
             pass: configService.get<string>('MAIL_PASS'),
+          },
+          tls: {
+            rejectUnauthorized: false, // Critical for many dev environments
           },
         },
         defaults: { from: configService.get<string>('MAIL_FROM') || 'Eduverse <noreply@eduverse.com>' },

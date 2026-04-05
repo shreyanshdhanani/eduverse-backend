@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Res, UnauthorizedException, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Res, UnauthorizedException, UploadedFile, UseInterceptors } from '@nestjs/common';
 import { UniversityAdminService } from './university-admin.service';
 import { UniversityRegistrationDto } from './university.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -115,4 +115,31 @@ export class UniversityAdminController {
         });
     });
   }
+    @Get('dashboard-stats/:token')
+    async getDashboardStats(@Param('token') token: string) {
+        return this.universityAdminService.getDashboardStats(token);
+    }
+
+    @Get('profile/:token')
+    async getProfile(@Param('token') token: string) {
+        return this.universityAdminService.getProfile(token);
+    }
+
+    @Patch('profile/:token')
+    @UseInterceptors(FileInterceptor('logo'))
+    async updateProfile(
+        @Param('token') token: string,
+        @Body() updateData: any,
+        @UploadedFile() logo: Express.Multer.File
+    ) {
+        if (logo) {
+            updateData.logo = logo.filename;
+        }
+        return this.universityAdminService.updateProfile(token, updateData);
+    }
+
+    @Get('get-enrolled-students/:token')
+    async getEnrolledStudents(@Param('token') token: string) {
+        return this.universityAdminService.getEnrolledStudents(token);
+    }
 }

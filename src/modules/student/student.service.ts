@@ -45,6 +45,10 @@ export class StudentService {
     return this.userModel.find({ universityId: university._id });
   }
 
+  async countStudentsByUniversity(university: any) {
+    return this.userModel.countDocuments({ universityId: university._id });
+  }
+
   // NOTE: forgotPassword and resetPassword are now handled by AuthService
   // These methods on StudentService are kept for backwards compat only
 

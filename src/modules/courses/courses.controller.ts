@@ -12,7 +12,7 @@ export class CoursesController {
         constructor(private readonly coursesService:CoursesService){}
 
        
-        @Get('get-all-cources')
+        @Get('get-all-courses')
         async getAllCourses()
         {
             return this.coursesService.getAllCourses()

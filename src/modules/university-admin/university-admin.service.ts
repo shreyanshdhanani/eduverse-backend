@@ -16,9 +16,10 @@ import { StudentService } from '../student/student.service';
 export class UniversityAdminService {
     constructor(@InjectModel(University.name) private universityModel: Model<University>,
     @InjectModel(Subscription.name) private subscriptionModel: Model<Subscription>,
-private mailService: MailerService,
-private studentService: StudentService,
-private readonly jwtService: JwtService) {}
+    @InjectModel('Enrollment') private enrollmentModel: Model<any>,
+    private mailService: MailerService,
+    private studentService: StudentService,
+    private readonly jwtService: JwtService) {}
 
     async findUniversityByEmail(email: string)
     {
@@ -230,4 +231,57 @@ private readonly jwtService: JwtService) {}
         });
       }
     
+    async getDashboardStats(token: string) {
+        const decoded = await this.jwtService.verify(token);
+        const university = await this.findUniversityByEmail(decoded.email);
+        if (!university) throw new NotFoundException('University not found');
+
+        const totalStudents = await this.studentService.countStudentsByUniversity(university);
+        const subscription = await this.subscriptionModel.findOne({ university: university._id });
+        
+        // Count students from this university who are enrolled in at least one course
+        const students = await this.studentService.getStudentByUniversity(university);
+        const studentIds = students.map(s => s._id);
+        const enrolledCount = await this.enrollmentModel.countDocuments({ userId: { $in: studentIds } });
+
+        return {
+            totalStudents,
+            enrolledCount,
+            subscriptionPlan: subscription?.plan || 'No Active Plan',
+            universityName: university.universityName,
+            approvalStatus: university.approvalStatus
+        };
+    }
+
+    async getProfile(token: string) {
+        const decoded = await this.jwtService.verify(token);
+        const university = await this.universityModel.findOne({ email: decoded.email }).select('-password');
+        if (!university) throw new NotFoundException('University not found');
+        return university;
+    }
+
+    async updateProfile(token: string, updateData: any) {
+        const decoded = await this.jwtService.verify(token);
+        const university = await this.universityModel.findOneAndUpdate(
+            { email: decoded.email },
+            { $set: updateData },
+            { new: true }
+        ).select('-password');
+        
+        if (!university) throw new NotFoundException('University not found');
+        return university;
+    }
+
+    async getEnrolledStudents(token: string) {
+        const decoded = await this.jwtService.verify(token);
+        const university = await this.findUniversityByEmail(decoded.email);
+        if (!university) throw new NotFoundException('University not found');
+
+        const students = await this.studentService.getStudentByUniversity(university);
+        const studentIds = students.map(s => s._id);
+
+        return this.enrollmentModel.find({ userId: { $in: studentIds } })
+            .populate('userId', 'name email')
+            .populate('courseId', 'title thumbnailImage');
+    }
 }

@@ -7,6 +7,7 @@ import { diskStorage } from 'multer'; // Import diskStorage from multer
 import { MongooseModule } from '@nestjs/mongoose';
 import { University, UniversitySchema } from 'src/schema/university.schema';
 import { Subscription, SubscriptionSchema } from 'src/schema/university-subscription.schema';
+import { Enrollment, EnrollmentSchema } from 'src/schema/enrollment.schema';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { StudentModule } from '../student/student.module';
@@ -14,8 +15,10 @@ import { StudentModule } from '../student/student.module';
 @Module({
   imports:[ 
     StudentModule,
-    MongooseModule.forFeature([{name: University.name, schema: UniversitySchema},
-      {name: Subscription.name, schema: SubscriptionSchema},
+    MongooseModule.forFeature([
+      { name: University.name, schema: UniversitySchema },
+      { name: Subscription.name, schema: SubscriptionSchema },
+      { name: 'Enrollment', schema: EnrollmentSchema },
     ]),
     MulterModule.register({
     storage: diskStorage({

@@ -159,9 +159,9 @@ export class CourseProviderController {
       category: body.category,
       subcategory: body.subcategory,
       topic: body.topic,
-      level: body.level,
+      level: body.level || body.courseLevel, // Support both naming conventions
       language: body.language,
-      duration: body.duration,
+      duration: body.duration || body.courseDuration, // Support both naming conventions
       price: body.price,
       thumbnailImage: files?.thumbnailImage?.[0]?.filename || null,
       previewVideo: files?.previewVideo?.[0]?.filename || null,

@@ -182,7 +182,7 @@ export class CourseProviderService {
     const subcategory = await this.subcategoryService.getOne(courseData.subcategory);
     const topic = await this.topicService.getOne(courseData.topic);
 
-    const courseFields = {
+    const courseFields: any = {
       category,
       subcategory,
       topic,
@@ -192,9 +192,14 @@ export class CourseProviderService {
       language: courseData.language,
       duration: courseData.duration,
       price: Number(courseData.price) || 0,
-      thumbnail: courseData.thumbnailImage,
-      previewVideo: courseData.previewVideo,
     };
+
+    if (courseData.thumbnailImage) {
+      courseFields.thumbnail = courseData.thumbnailImage;
+    }
+    if (courseData.previewVideo) {
+      courseFields.previewVideo = courseData.previewVideo;
+    }
 
     if (courseData.courseId === 'new-course') {
       const courseProvider = await this.courseProviderModel.findById(providerId);

@@ -66,7 +66,7 @@ export class UniversityAdminService {
                 await this.mailService.sendMail({
                     to: university.email,
                     subject: 'Welcome to Our Platform!',
-                    template: '../public/templates/university-approval',
+                    template: 'university-approval',
                     context: {
                                 universityName:university.universityName,
                                 email: university.email,
@@ -146,7 +146,7 @@ export class UniversityAdminService {
             await this.mailService.sendMail({
                 to: newStudent.email,
                 subject: 'Welcome to EduVerse - Your Learning Platform',
-                template: '../public/templates/invitation-mail',
+                template: 'invitation-mail',
                 context: {
                     studentName: newStudent.name,
                     studentEmail: newStudent.email

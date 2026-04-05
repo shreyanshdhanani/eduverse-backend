@@ -55,7 +55,7 @@ export class CourseProviderService {
       await this.mailService.sendMail({
         to: courseProvider.email,
         subject: 'Welcome to Our Platform!',
-        template: '../public/templates/course-provider-welcome',
+        template: 'course-provider-welcome',
         context: { name: courseProvider.name },
       });
     }
@@ -224,7 +224,7 @@ export class CourseProviderService {
         await this.mailService.sendMail({
           to: courseProvider.email,
           subject: 'Your Course Has Been Approved!',
-          template: '../public/templates/course-approval',
+          template: 'course-approval',
           context: {
             providerName: courseProvider.name,
             courseTitle: course?.title,
@@ -245,7 +245,7 @@ export class CourseProviderService {
         await this.mailService.sendMail({
           to: courseProvider.email,
           subject: 'Your Account Has Been Approved!',
-          template: '../public/templates/course-provider-approval',
+          template: 'course-provider-approval',
           context: { name: courseProvider.name, dashboardLink: frontendUrl },
         });
       }

@@ -75,7 +75,7 @@ export class AuthService {
     await this.mailService.sendMail({
       to: provider.email,
       subject: 'Welcome to Our Platform!',
-      template: '../public/templates/course-provider-welcome',
+      template: 'course-provider-welcome',
       context: { name: provider.name },
     });
     return { message: 'Registration successful. Await admin approval.' };
@@ -174,7 +174,7 @@ export class AuthService {
     await this.mailService.sendMail({
       to: user.email,
       subject: 'Reset Your Password',
-      template: '../public/templates/forgot-password',
+      template: 'forgot-password',
       context: { name: user.name, resetLink },
     });
 

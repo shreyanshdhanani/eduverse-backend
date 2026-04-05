@@ -12,14 +12,13 @@ export class UniversityRegistrationDto {
 
   @IsNotEmpty()
   @Length(6, 20)
-  @IsOptional()
   password: string;
 
   @IsNotEmpty()
   @Length(10, 200)
   address: string;
 
-  @IsPhoneNumber()
+  @IsPhoneNumber('IN')
   @IsNotEmpty()
   contactNumber: string;
 

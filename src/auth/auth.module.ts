@@ -12,6 +12,7 @@ import { MailerModule } from '@nestjs-modules/mailer';
 import { User, UserSchema } from '../schema/student.schema';
 import { CourseProvider, CourseProviderSchema } from '../schema/course-provider.schema';
 import { SuperAdmin, SuperAdminSchema } from '../schema/super-admin.schema';
+import { University, UniversitySchema } from '../schema/university.schema';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { SuperAdmin, SuperAdminSchema } from '../schema/super-admin.schema';
       { name: User.name, schema: UserSchema },
       { name: CourseProvider.name, schema: CourseProviderSchema },
       { name: SuperAdmin.name, schema: SuperAdminSchema },
+      { name: University.name, schema: UniversitySchema },
     ]),
   ],
   controllers: [AuthController],

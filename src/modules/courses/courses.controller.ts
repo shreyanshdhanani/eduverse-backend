@@ -1,12 +1,17 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { CoursesService } from './courses.service';
 import { Section } from 'src/schema/section.schema';
 import { Course } from 'src/schema/course.schema';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { Roles } from 'src/common/decorators/roles.decorator';
+import { Role } from 'src/common/enums/role.enum';
 
 @Controller('courses')
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class CoursesController {
     
         constructor(private readonly coursesService:CoursesService){}
@@ -25,6 +30,7 @@ export class CoursesController {
         }
 
         // Endpoint to add a section to a course
+  @Roles(Role.PROVIDER, Role.SUPER_ADMIN)
   @Post(':courseId/sections')
   async addSection(
     @Param('courseId') courseId: string,
@@ -34,6 +40,7 @@ export class CoursesController {
   }
 
   // Endpoint to update a section in a course
+  @Roles(Role.PROVIDER, Role.SUPER_ADMIN)
   @Put(':courseId/sections/:sectionId')
   async updateSection(
     @Param('courseId') courseId: string,
@@ -44,6 +51,7 @@ export class CoursesController {
   }
 
   // Endpoint to delete a section from a course
+  @Roles(Role.PROVIDER, Role.SUPER_ADMIN)
   @Delete(':courseId/sections/:sectionId')
   async deleteSection(
     @Param('courseId') courseId: string,
@@ -52,6 +60,7 @@ export class CoursesController {
     return this.coursesService.deleteSection(courseId, sectionId);
   }
 
+  @Roles(Role.PROVIDER, Role.SUPER_ADMIN)
   @Post(':courseId/sections/:sectionId/videos')
   @UseInterceptors(
     FileInterceptor('video', {

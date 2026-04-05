@@ -9,6 +9,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs'
 import * as csvParser from 'csv-parser'; 
 import * as fs from 'fs';
+import { Role } from 'src/common/enums/role.enum';
 
 @Controller('university-admin')
 export class UniversityAdminController {
@@ -42,7 +43,7 @@ export class UniversityAdminController {
           throw new UnauthorizedException('invalid credential');
     
         }
-        const payload = { email: admin.email, role: 'university' };
+        const payload = { sub: (admin as any)._id.toString(), email: admin.email, role: Role.UNIVERSITY };
         const token = this.jwtService.sign(payload);
         return { message: 'Login successful', token };
       }

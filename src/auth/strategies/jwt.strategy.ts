@@ -7,6 +7,8 @@ import { Model } from 'mongoose';
 import { User } from 'src/schema/student.schema';
 import { CourseProvider } from 'src/schema/course-provider.schema';
 import { SuperAdmin } from 'src/schema/super-admin.schema';
+import { University } from 'src/schema/university.schema';
+import { Role } from 'src/common/enums/role.enum';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
@@ -15,6 +17,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     @InjectModel(User.name) private userModel: Model<User>,
     @InjectModel(CourseProvider.name) private providerModel: Model<CourseProvider>,
     @InjectModel(SuperAdmin.name) private adminModel: Model<SuperAdmin>,
+    @InjectModel(University.name) private universityModel: Model<University>,
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -27,10 +30,12 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     const { sub, email, role } = payload;
     let user: any = null;
 
-    if (role === 'super_admin') {
+    if (role === Role.SUPER_ADMIN) {
       user = await this.adminModel.findById(sub).lean();
-    } else if (role === 'provider') {
+    } else if (role === Role.PROVIDER) {
       user = await this.providerModel.findById(sub).lean();
+    } else if (role === Role.UNIVERSITY) {
+      user = await this.universityModel.findById(sub).lean();
     } else {
       user = await this.userModel.findById(sub).lean();
     }

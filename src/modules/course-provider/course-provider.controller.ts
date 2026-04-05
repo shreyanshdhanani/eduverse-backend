@@ -123,7 +123,7 @@ export class CourseProviderController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.PROVIDER)
+  @Roles(Role.PROVIDER, Role.SUPER_ADMIN)
   @UseInterceptors(
     FileFieldsInterceptor(
       [

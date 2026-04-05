@@ -17,10 +17,29 @@ export class CartService {
 
   async getCartCourses(userId: string) {
     console.log(`Fetching cart for user: ${userId}`);
-    const cartItems = await this.cartModel.find({ userId }).populate('courseId');
     
+    // First, find all cart items to check for corrupted data (non-ObjectId courseId)
+    const cartItems = await this.cartModel.find({ userId });
+    
+    // Identify valid course IDs
+    const validCourseIds = cartItems
+      .filter((item) => Types.ObjectId.isValid(item.courseId.toString()))
+      .map((item) => item.courseId);
+
+    // Identify and delete corrupted records (optional but recommended for data health)
+    const corruptedItems = cartItems.filter((item) => !Types.ObjectId.isValid(item.courseId.toString()));
+    if (corruptedItems.length > 0) {
+      console.warn(`Found ${corruptedItems.length} corrupted cart items for user ${userId}. Cleaning up...`);
+      await this.cartModel.deleteMany({ _id: { $in: corruptedItems.map(i => i._id) } });
+    }
+
+    // Fetch only valid items with population to avoid CastError
+    const validCartItemsWithCourses = await this.cartModel
+      .find({ userId, courseId: { $in: validCourseIds } })
+      .populate('courseId');
+      
     // Filter out items where the course no longer exists in the Courses collection
-    const courses = cartItems
+    const courses = validCartItemsWithCourses
       .filter((item) => item.courseId !== null)
       .map((item) => item.courseId);
       

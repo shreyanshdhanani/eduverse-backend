@@ -72,12 +72,17 @@ export class AuthService {
     const existing = await this.providerModel.findOne({ email: data.email });
     if (existing) throw new BadRequestException('Email already in use.');
     const provider = await this.providerModel.create({ ...data, role: Role.PROVIDER });
-    await this.mailService.sendMail({
-      to: provider.email,
-      subject: 'Welcome to Our Platform!',
-      template: 'course-provider-welcome',
-      context: { name: provider.name },
-    });
+    try {
+      await this.mailService.sendMail({
+        to: provider.email,
+        subject: 'Welcome to Our Platform!',
+        template: 'course-provider-welcome',
+        context: { name: provider.name },
+      });
+      console.log(`✅ Provider welcome email sent to: ${provider.email}`);
+    } catch (mailError) {
+      console.error(`❌ Failed to send provider welcome email to ${provider.email}:`, mailError);
+    }
     return { message: 'Registration successful. Await admin approval.' };
   }
 
@@ -91,8 +96,8 @@ export class AuthService {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) throw new UnauthorizedException('Invalid credentials.');
 
-    // Check provider approval
-    if (role === Role.PROVIDER && user.status !== 'approved') {
+    // Check provider approval (case-insensitive)
+    if (role === Role.PROVIDER && user.status?.toLowerCase() !== 'approved') {
       throw new ForbiddenException('Your account is pending approval.');
     }
 

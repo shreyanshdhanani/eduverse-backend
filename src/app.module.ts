@@ -63,6 +63,9 @@ import { CmsModule } from './modules/cms/cms.module';
           tls: {
             rejectUnauthorized: false, // Critical for many dev environments
           },
+          connectionTimeout: 10000, // 10 seconds
+          greetingTimeout: 10000,
+          socketTimeout: 30000,
         },
         defaults: { from: configService.get<string>('MAIL_FROM') || 'Eduverse <noreply@eduverse.com>' },
         template: {

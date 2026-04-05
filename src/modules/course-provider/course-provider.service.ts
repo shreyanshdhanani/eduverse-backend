@@ -52,12 +52,17 @@ export class CourseProviderService {
   async register(createCourseProviderDto: CreateCourseProviderDto) {
     const courseProvider = await this.courseProviderModel.create(createCourseProviderDto);
     if (courseProvider._id) {
-      await this.mailService.sendMail({
-        to: courseProvider.email,
-        subject: 'Welcome to Our Platform!',
-        template: 'course-provider-welcome',
-        context: { name: courseProvider.name },
-      });
+      try {
+        await this.mailService.sendMail({
+          to: courseProvider.email,
+          subject: 'Welcome to Our Platform!',
+          template: 'course-provider-welcome',
+          context: { name: courseProvider.name },
+        });
+        console.log(`✅ Course provider welcome email sent to: ${courseProvider.email}`);
+      } catch (mailError) {
+        console.error(`❌ Failed to send course provider welcome email to ${courseProvider.email}:`, mailError);
+      }
     }
     return { message: 'Registration successful. Await admin approval.' };
   }
@@ -220,17 +225,22 @@ export class CourseProviderService {
       const course = await this.courseModel.findById(id);
       const courseProvider = await this.courseProviderModel.findById(course?.courseProvider);
       if (courseProvider?._id) {
-        const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
-        await this.mailService.sendMail({
-          to: courseProvider.email,
-          subject: 'Your Course Has Been Approved!',
-          template: 'course-approval',
-          context: {
-            providerName: courseProvider.name,
-            courseTitle: course?.title,
-            courseLink: `${frontendUrl}/home`,
-          },
-        });
+        try {
+          const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+          await this.mailService.sendMail({
+            to: courseProvider.email,
+            subject: 'Your Course Has Been Approved!',
+            template: 'course-approval',
+            context: {
+              providerName: courseProvider.name,
+              courseTitle: course?.title,
+              courseLink: `${frontendUrl}/home`,
+            },
+          });
+          console.log(`✅ Course approval email sent to: ${courseProvider.email}`);
+        } catch (mailError) {
+          console.error(`❌ Failed to send course approval email to ${courseProvider.email}:`, mailError);
+        }
       }
     }
     return updateStatus;

@@ -63,18 +63,23 @@ export class UniversityAdminService {
             const university = await this.universityModel.findById(id)
             if(university?._id)
             {
-                await this.mailService.sendMail({
-                    to: university.email,
-                    subject: 'Welcome to Our Platform!',
-                    template: 'university-approval',
-                    context: {
-                                universityName:university.universityName,
-                                email: university.email,
-                                contactNumber: university.contactNumber,
-                                website: "werdfgbvcx",
-                                dashboardLink: "sadfghj"
-                     }
-                });
+                try {
+                    await this.mailService.sendMail({
+                        to: university.email,
+                        subject: 'Welcome to Our Platform!',
+                        template: 'university-approval',
+                        context: {
+                                    universityName:university.universityName,
+                                    email: university.email,
+                                    contactNumber: university.contactNumber,
+                                    website: "werdfgbvcx",
+                                    dashboardLink: "sadfghj"
+                         }
+                    });
+                    console.log(`✅ University approval email sent to: ${university.email}`);
+                } catch (mailError) {
+                    console.error(`❌ Failed to send university approval email to ${university.email}:`, mailError);
+                }
             }
            
         }
@@ -143,15 +148,20 @@ export class UniversityAdminService {
         const newStudent = await this.studentService.createStudent(newUser); // Save student in the User model
         if(newStudent._id)
         {
-            await this.mailService.sendMail({
-                to: newStudent.email,
-                subject: 'Welcome to EduVerse - Your Learning Platform',
-                template: 'invitation-mail',
-                context: {
-                    studentName: newStudent.name,
-                    studentEmail: newStudent.email
-                }
-            });
+            try {
+                await this.mailService.sendMail({
+                    to: newStudent.email,
+                    subject: 'Welcome to EduVerse - Your Learning Platform',
+                    template: 'invitation-mail',
+                    context: {
+                        studentName: newStudent.name,
+                        studentEmail: newStudent.email
+                    }
+                });
+                console.log(`✅ Student invitation email sent to: ${newStudent.email}`);
+            } catch (mailError) {
+                console.error(`❌ Failed to send student invitation email to ${newStudent.email}:`, mailError);
+            }
         }
     });
     await Promise.all(userPromises);

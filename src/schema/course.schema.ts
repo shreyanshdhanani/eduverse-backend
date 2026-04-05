@@ -33,7 +33,7 @@ export class Course extends Document {
   language: string;
 
   @Prop({ required: true })
-  duration: number; // in hours
+  duration: string; // can be "5 weeks", "10 hours", etc.
 
   @Prop({ default: 0 })
   price: number; // course price in base currency unit

@@ -191,7 +191,7 @@ export class CourseProviderService {
       level: courseData.level,
       language: courseData.language,
       duration: courseData.duration,
-      price: courseData.price || 0,
+      price: Number(courseData.price) || 0,
       thumbnail: courseData.thumbnailImage,
       previewVideo: courseData.previewVideo,
     };

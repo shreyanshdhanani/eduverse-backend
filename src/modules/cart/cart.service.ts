@@ -1,6 +1,6 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Cart } from 'src/schema/cart.schema';
 import { Course } from 'src/schema/course.schema';
 import { Enrollment } from 'src/schema/enrollment.schema';
@@ -30,6 +30,10 @@ export class CartService {
   
   async addCourseToCart(userId: string, courseId: string) {
     console.log(`Adding course ${courseId} to cart for user ${userId}`);
+    
+    if (!Types.ObjectId.isValid(courseId)) {
+      throw new HttpException('Invalid course ID format', HttpStatus.BAD_REQUEST);
+    }
     const user = await this.userModel.findById(userId);
     if (!user) throw new HttpException('User not found', HttpStatus.NOT_FOUND);
 

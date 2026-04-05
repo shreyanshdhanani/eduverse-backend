@@ -16,17 +16,20 @@ import {
 import { CourseProviderService } from './course-provider.service';
 import { CreateCourseProviderDto } from './course-provider.dto';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { extname } from 'path';
+import { memoryStorage } from 'multer';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { Role } from 'src/common/enums/role.enum';
+import { CloudinaryService } from '../cloudinary/cloudinary.service';
 
 @Controller('course-provider')
 export class CourseProviderController {
-  constructor(private readonly courseProviderService: CourseProviderService) {}
+  constructor(
+    private readonly courseProviderService: CourseProviderService,
+    private readonly cloudinaryService: CloudinaryService,
+  ) {}
 
   // ─── Public ─────────────────────────────────────────────────────────────────
 
@@ -96,17 +99,13 @@ export class CourseProviderController {
     return this.courseProviderService.getProfile(user._id);
   }
 
+  // ─── Update Profile (with optional profile picture upload) ──────────────────
+
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.PROVIDER)
   @UseInterceptors(
     FileFieldsInterceptor([{ name: 'profilePicture', maxCount: 1 }], {
-      storage: diskStorage({
-        destination: './upload/course-providers/profile',
-        filename: (req, file, cb) => {
-          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-          cb(null, `${file.fieldname}-${uniqueSuffix}${extname(file.originalname)}`);
-        },
-      }),
+      storage: memoryStorage(),
     }),
   )
   @Patch('profile')
@@ -116,11 +115,21 @@ export class CourseProviderController {
     @CurrentUser() user: any,
   ) {
     const profileData = { ...body };
+
     if (files?.profilePicture?.[0]) {
-      profileData.profilePicture = files.profilePicture[0].filename;
+      const file = files.profilePicture[0];
+      const result = await this.cloudinaryService.uploadFile(
+        file.buffer,
+        'lms/providers/profile',
+        'image',
+      );
+      profileData.profilePicture = result.secure_url;
     }
+
     return this.courseProviderService.updateProfile(user._id, profileData);
   }
+
+  // ─── Upload Basic Course Information (thumbnail + preview video) ─────────────
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.PROVIDER, Role.SUPER_ADMIN)
@@ -131,13 +140,7 @@ export class CourseProviderController {
         { name: 'previewVideo', maxCount: 1 },
       ],
       {
-        storage: diskStorage({
-          destination: './upload/courses',
-          filename: (req, file, cb) => {
-            const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-            cb(null, `${file.fieldname}-${uniqueSuffix}${extname(file.originalname)}`);
-          },
-        }),
+        storage: memoryStorage(),
       },
     ),
   )
@@ -152,6 +155,32 @@ export class CourseProviderController {
     if (id !== 'new-course') {
       await this.courseProviderService.verifyCourseOwnership(id, user._id);
     }
+
+    let thumbnailUrl: string | null = null;
+    let previewVideoUrl: string | null = null;
+
+    // Upload thumbnail to Cloudinary
+    if (files?.thumbnailImage?.[0]) {
+      const thumb = files.thumbnailImage[0];
+      const result = await this.cloudinaryService.uploadFile(
+        thumb.buffer,
+        'lms/courses/thumbnails',
+        'image',
+      );
+      thumbnailUrl = result.secure_url;
+    }
+
+    // Upload preview video to Cloudinary
+    if (files?.previewVideo?.[0]) {
+      const vid = files.previewVideo[0];
+      const result = await this.cloudinaryService.uploadFile(
+        vid.buffer,
+        'lms/courses/previews',
+        'video',
+      );
+      previewVideoUrl = result.secure_url;
+    }
+
     const courseData = {
       courseId: id,
       title: body.title,
@@ -159,13 +188,14 @@ export class CourseProviderController {
       category: body.category,
       subcategory: body.subcategory,
       topic: body.topic,
-      level: body.level || body.courseLevel, // Support both naming conventions
+      level: body.level || body.courseLevel,
       language: body.language,
-      duration: body.duration || body.courseDuration, // Support both naming conventions
+      duration: body.duration || body.courseDuration,
       price: body.price,
-      thumbnailImage: files?.thumbnailImage?.[0]?.filename || null,
-      previewVideo: files?.previewVideo?.[0]?.filename || null,
+      thumbnailImage: thumbnailUrl,
+      previewVideo: previewVideoUrl,
     };
+
     return this.courseProviderService.uploadBasicInformation(courseData, user._id);
   }
 

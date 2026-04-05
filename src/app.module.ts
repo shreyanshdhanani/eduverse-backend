@@ -24,6 +24,7 @@ import { CartModule } from './modules/cart/cart.module';
 import { EnrollmentModule } from './modules/enrollment/enrollment.module';
 import { StripeModule } from './modules/stripe/stripe.module';
 import { CmsModule } from './modules/cms/cms.module';
+import { CloudinaryModule } from './modules/cloudinary/cloudinary.module';
 
 @Module({
   imports: [
@@ -43,10 +44,8 @@ import { CmsModule } from './modules/cms/cms.module';
       ],
     }),
 
-    // 3. Multer
-    MulterModule.register({ 
-        dest: './upload' 
-    }),
+    // 3. Cloudinary (replaces local disk storage)
+    CloudinaryModule,
 
     // 4. Mailer
     MailerModule.forRootAsync({

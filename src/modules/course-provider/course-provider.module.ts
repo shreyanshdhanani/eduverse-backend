@@ -11,6 +11,7 @@ import { CourseProviderProfile, CourseProviderProfileSchema } from 'src/schema/c
 import { Enrollment, EnrollmentSchema } from 'src/schema/enrollment.schema';
 import { Order, OrderSchema } from 'src/schema/order.schema';
 import { AuthModule } from 'src/auth/auth.module';
+import { CloudinaryService } from '../cloudinary/cloudinary.service';
 
 @Module({
   imports: [
@@ -27,7 +28,7 @@ import { AuthModule } from 'src/auth/auth.module';
     ]),
   ],
   controllers: [CourseProviderController],
-  providers: [CourseProviderService],
+  providers: [CourseProviderService, CloudinaryService],
   exports: [CourseProviderService],
 })
 export class CourseProviderModule {}

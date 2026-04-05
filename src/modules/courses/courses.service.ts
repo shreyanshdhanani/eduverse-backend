@@ -74,9 +74,7 @@ export class CoursesService {
     return updatedCourse; // Return the updated course with the section removed
   }
   
-  async addVideo(courseId: string, sectionId: string, video: Express.Multer.File) {
-    const videoUrl = `/upload/courses/videos/${video.filename}`; 
-  
+  async addVideo(courseId: string, sectionId: string, videoUrl: string) {
     const updatedCourse = await this.courseModel.findOneAndUpdate(
       { _id: courseId, 'sections._id': sectionId }, 
       {

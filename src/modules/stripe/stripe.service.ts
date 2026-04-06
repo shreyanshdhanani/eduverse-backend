@@ -7,6 +7,7 @@ import { Order, PaymentStatus } from 'src/schema/order.schema';
 import { Enrollment } from 'src/schema/enrollment.schema';
 import { Course } from 'src/schema/course.schema';
 import { User } from 'src/schema/student.schema';
+import { Cart } from 'src/schema/cart.schema';
 
 @Injectable()
 export class StripeService {
@@ -18,6 +19,7 @@ export class StripeService {
     @InjectModel(Enrollment.name) private enrollmentModel: Model<Enrollment>,
     @InjectModel(Course.name) private courseModel: Model<Course>,
     @InjectModel(User.name) private userModel: Model<User>,
+    @InjectModel(Cart.name) private cartModel: Model<Cart>,
   ) {
     this.stripe = new Stripe(configService.get<string>('STRIPE_CREDENTIALS')!);
   }
@@ -25,7 +27,9 @@ export class StripeService {
   // ─── Create Checkout Session ─────────────────────────────────────────────────
 
   async createCheckoutSession(courses: any[], userId: string) {
-    const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+    const frontendUrlRaw = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+    // Handle comma-separated URLs in .env (common for multiple environments)
+    const frontendUrl = frontendUrlRaw.split(',')[0].trim();
 
     // Create pending orders for each course before redirect
     const orderIds: string[] = [];
@@ -64,6 +68,23 @@ export class StripeService {
 
     return { url: session.url, sessionId: session.id };
   }
+  
+  // ─── Verify Checkout Session ────────────────────────────────────────────────
+  
+  async verifySession(sessionId: string) {
+    try {
+      const session = await this.stripe.checkout.sessions.retrieve(sessionId);
+      
+      if (session.payment_status === 'paid') {
+        const result = await this.handleCheckoutSuccess(session);
+        return { success: true, ...result };
+      }
+      
+      return { success: false, status: session.payment_status };
+    } catch (error) {
+      throw new BadRequestException(`Failed to verify session: ${error.message}`);
+    }
+  }
 
   // ─── Stripe Webhook ──────────────────────────────────────────────────────────
 
@@ -98,6 +119,10 @@ export class StripeService {
     const ids = orderIds.split(',').filter(Boolean);
 
     for (const orderId of ids) {
+      // Find order and check if it's already successful to avoid double processing
+      const existingOrder = await this.orderModel.findById(orderId);
+      if (!existingOrder || existingOrder.paymentStatus === PaymentStatus.SUCCESS) continue;
+
       const order = await this.orderModel.findByIdAndUpdate(
         orderId,
         {
@@ -123,6 +148,13 @@ export class StripeService {
         }
       }
     }
+
+    // After all orders processed, clear the user's cart
+    if (userId) {
+      await this.cartModel.deleteMany({ userId });
+    }
+
+    return { message: 'Orders processed and cart cleared' };
   }
 
   private async handleCheckoutFailed(session: Stripe.Checkout.Session) {

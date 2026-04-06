@@ -11,12 +11,18 @@ import { Request } from 'express';
 export class StripeController {
   constructor(private readonly stripeService: StripeService) {}
 
-  // Requires auth — creates checkout session with pending orders
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.USER)
   @Post('create-checkout-session')
   async createSession(@Body('cartCourses') cartCourses: any[], @CurrentUser() user: any) {
     return this.stripeService.createCheckoutSession(cartCourses, user._id);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.USER)
+  @Post('verify-session')
+  async verifySession(@Body('sessionId') sessionId: string) {
+    return this.stripeService.verifySession(sessionId);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)

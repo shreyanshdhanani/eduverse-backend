@@ -25,6 +25,7 @@ import { EnrollmentModule } from './modules/enrollment/enrollment.module';
 import { StripeModule } from './modules/stripe/stripe.module';
 import { CmsModule } from './modules/cms/cms.module';
 import { CloudinaryModule } from './modules/cloudinary/cloudinary.module';
+import { AIExamModule } from './modules/ai-exam/ai-exam.module';
 
 @Module({
   imports: [
@@ -100,6 +101,7 @@ import { CloudinaryModule } from './modules/cloudinary/cloudinary.module';
     EnrollmentModule,
     StripeModule,
     CmsModule,
+    AIExamModule,
   ],
   controllers: [AppController],
   providers: [AppService],

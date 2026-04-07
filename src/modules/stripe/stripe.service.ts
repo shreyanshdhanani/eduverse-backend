@@ -1,13 +1,15 @@
 import { BadRequestException, Injectable, RawBodyRequest } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import Stripe from 'stripe';
 import { Order, PaymentStatus } from 'src/schema/order.schema';
 import { Enrollment } from 'src/schema/enrollment.schema';
 import { Course } from 'src/schema/course.schema';
 import { User } from 'src/schema/student.schema';
 import { Cart } from 'src/schema/cart.schema';
+import { SubscriptionPlan } from 'src/schema/subscription-plan.schema';
+import { Subscription } from 'src/schema/university-subscription.schema';
 
 @Injectable()
 export class StripeService {
@@ -20,6 +22,8 @@ export class StripeService {
     @InjectModel(Course.name) private courseModel: Model<Course>,
     @InjectModel(User.name) private userModel: Model<User>,
     @InjectModel(Cart.name) private cartModel: Model<Cart>,
+    @InjectModel(SubscriptionPlan.name) private planModel: Model<SubscriptionPlan>,
+    @InjectModel(Subscription.name) private subscriptionModel: Model<Subscription>,
   ) {
     this.stripe = new Stripe(configService.get<string>('STRIPE_CREDENTIALS')!);
   }
@@ -68,6 +72,52 @@ export class StripeService {
 
     return { url: session.url, sessionId: session.id };
   }
+
+  // ─── Create Subscription Checkout Session ───────────────────────────────────
+
+  async createSubscriptionSession(planId: string, universityId: string) {
+    // ─── CHECK FOR ACTIVE SUBSCRIPTION ─────────
+    const existingSub = await this.subscriptionModel.findOne({ 
+      university: universityId, 
+      isActive: true, 
+      endDate: { $gt: new Date() } 
+    });
+    if (existingSub) {
+      throw new BadRequestException('You already have an active subscription plan');
+    }
+
+    const plan = await this.planModel.findById(planId);
+    if (!plan) throw new BadRequestException('Subscription plan not found');
+
+    const frontendUrlRaw = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+    const frontendUrl = frontendUrlRaw.split(',')[0].trim();
+
+    const session = await this.stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      mode: 'payment',
+      line_items: [{
+        price_data: {
+          currency: 'inr',
+          product_data: { 
+            name: plan.planName,
+            description: `University Subscription: ${plan.maxStudents} students, ${plan.maxCoursesPerStudent} courses per student`,
+          },
+          unit_amount: plan.price * 100, // Assuming price is in INR or USD * 100
+        },
+        quantity: 1,
+      }],
+      success_url: `${frontendUrl}/university/subscription?success=true&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${frontendUrl}/university/subscription?canceled=true`,
+      metadata: {
+        type: 'subscription_purchase',
+        universityId,
+        planId,
+      },
+    });
+
+    console.log(`[FORENSIC] [StripeService] Created session ${session.id} for universityId: ${universityId}`);
+    return { url: session.url, sessionId: session.id };
+  }
   
   // ─── Verify Checkout Session ────────────────────────────────────────────────
   
@@ -113,7 +163,15 @@ export class StripeService {
   }
 
   private async handleCheckoutSuccess(session: Stripe.Checkout.Session) {
-    const { userId, orderIds } = session.metadata || {};
+    const { type, userId, orderIds, universityId, planId } = session.metadata || {};
+    console.log(`[StripeService] Handling checkout success for stage: ${type}`);
+    console.log(`[StripeService] Session metadata:`, session.metadata);
+
+    if (type === 'subscription_purchase') {
+      console.log('[StripeService] Detected subscription purchase - fulfilling...');
+      return this.fulfillSubscription(session);
+    }
+
     if (!userId || !orderIds) return;
 
     const ids = orderIds.split(',').filter(Boolean);
@@ -155,6 +213,51 @@ export class StripeService {
     }
 
     return { message: 'Orders processed and cart cleared' };
+  }
+
+  private async fulfillSubscription(session: Stripe.Checkout.Session) {
+    const { universityId, planId } = session.metadata || {};
+    console.log(`[FORENSIC] [StripeService] Starting fulfillment for session ${session.id}`);
+    console.log(`[FORENSIC] [StripeService] Metadata universityId: ${universityId}`);
+    console.log(`[FORENSIC] [StripeService] Metadata planId: ${planId}`);
+    
+    if (!universityId || !planId) {
+      console.warn('[StripeService] Missing metadata in session');
+      return;
+    }
+
+    const plan = await this.planModel.findById(planId);
+    if (!plan) {
+      console.warn(`[StripeService] Plan not found for planId: ${planId}`);
+      return;
+    }
+
+    const startDate = new Date();
+    const endDate = new Date();
+    endDate.setDate(startDate.getDate() + 365); // Default 1 year
+
+    try {
+      const updated = await this.subscriptionModel.findOneAndUpdate(
+        { university: new Types.ObjectId(universityId) },
+        {
+          university: new Types.ObjectId(universityId),
+          planRef: new Types.ObjectId(planId),
+          planName: plan.planName,
+          maxStudents: plan.maxStudents,
+          maxCoursesPerStudent: plan.maxCoursesPerStudent,
+          startDate,
+          endDate,
+          isActive: true,
+          stripeSessionId: session.id,
+        },
+        { upsert: true, new: true }
+      );
+      console.log(`[StripeService] Subscription record saved successfully: ${updated._id}`);
+      return { message: 'Subscription fulfilled successfully', subscriptionId: updated._id };
+    } catch (error) {
+      console.error('[StripeService] Error saving subscription record:', error);
+      throw error;
+    }
   }
 
   private async handleCheckoutFailed(session: Stripe.Checkout.Session) {

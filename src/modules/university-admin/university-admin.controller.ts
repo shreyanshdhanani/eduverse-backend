@@ -146,4 +146,21 @@ export class UniversityAdminController {
   async getEnrolledStudents(@Param('token') token: string) {
     return this.universityAdminService.getEnrolledStudents(token);
   }
+
+  // ─── Subscription (university portal view) ───────────────────────────────────
+
+  @Get('active-subscription/:token')
+  async getActiveSubscription(@Param('token') token: string) {
+    return this.universityAdminService.getActiveSubscription(token);
+  }
+
+  @Get('subscription-usage/:token')
+  async getSubscriptionUsage(@Param('token') token: string) {
+    return this.universityAdminService.getSubscriptionUsage(token);
+  }
+
+  @Post('add-student-manual')
+  async addStudentManual(@Body() dto: any) {
+    return this.universityAdminService.addStudentManual(dto);
+  }
 }

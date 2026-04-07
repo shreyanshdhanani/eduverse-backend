@@ -22,6 +22,12 @@ export class User extends Document {
 
   @Prop({ type: Types.ObjectId, ref: 'University' })
   universityId: Types.ObjectId;
+
+  @Prop({ default: 0 })
+  freeCoursesUsed: number;
+
+  @Prop({ default: false })
+  mustChangePassword: boolean;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

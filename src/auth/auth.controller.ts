@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Patch,
   Post,
   Req,
   UseGuards,
@@ -51,6 +52,11 @@ class ResetPasswordDto {
 class RefreshDto {
   @IsNotEmpty() refreshToken: string;
   @IsEnum(Role) role: Role;
+}
+
+class ChangePasswordDto {
+  @IsString() @IsNotEmpty() currentPassword: string;
+  @IsString() @MinLength(6) newPassword: string;
 }
 
 @Controller('auth')
@@ -118,5 +124,13 @@ export class AuthController {
   @Post('reset-password')
   resetPassword(@Body() dto: ResetPasswordDto) {
     return this.authService.resetPassword(dto.token, dto.newPassword);
+  }
+
+  // ─── Change Password (university students) ──────────────────────────────────
+
+  @UseGuards(JwtAuthGuard)
+  @Patch('change-password')
+  changePassword(@Body() dto: ChangePasswordDto, @CurrentUser() user: any) {
+    return this.authService.changePassword(user._id, dto.currentPassword, dto.newPassword);
   }
 }

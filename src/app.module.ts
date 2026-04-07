@@ -26,6 +26,7 @@ import { StripeModule } from './modules/stripe/stripe.module';
 import { CmsModule } from './modules/cms/cms.module';
 import { CloudinaryModule } from './modules/cloudinary/cloudinary.module';
 import { AIExamModule } from './modules/ai-exam/ai-exam.module';
+import { UniversitySubscriptionModule } from './modules/university-subscription/university-subscription.module';
 
 @Module({
   imports: [
@@ -102,6 +103,7 @@ import { AIExamModule } from './modules/ai-exam/ai-exam.module';
     StripeModule,
     CmsModule,
     AIExamModule,
+    UniversitySubscriptionModule,
   ],
   controllers: [AppController],
   providers: [AppService],

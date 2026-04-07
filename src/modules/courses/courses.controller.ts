@@ -11,7 +11,6 @@ import { Role } from 'src/common/enums/role.enum';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 
 @Controller('courses')
-@UseGuards(JwtAuthGuard, RolesGuard)
 export class CoursesController {
 
   constructor(
@@ -31,6 +30,7 @@ export class CoursesController {
   }
 
   // Endpoint to add a section to a course
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.PROVIDER, Role.SUPER_ADMIN)
   @Post(':courseId/sections')
   async addSection(
@@ -41,6 +41,7 @@ export class CoursesController {
   }
 
   // Endpoint to update a section in a course
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.PROVIDER, Role.SUPER_ADMIN)
   @Put(':courseId/sections/:sectionId')
   async updateSection(
@@ -52,6 +53,7 @@ export class CoursesController {
   }
 
   // Endpoint to delete a section from a course
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.PROVIDER, Role.SUPER_ADMIN)
   @Delete(':courseId/sections/:sectionId')
   async deleteSection(
@@ -62,6 +64,7 @@ export class CoursesController {
   }
 
   // Upload section video to Cloudinary
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.PROVIDER, Role.SUPER_ADMIN)
   @Post(':courseId/sections/:sectionId/videos')
   @UseInterceptors(

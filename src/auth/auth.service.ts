@@ -116,7 +116,13 @@ export class AuthService {
     return {
       accessToken,
       refreshToken,
-      user: { id: user._id, email: user.email, name: user.name, role },
+      user: { 
+        id: user._id, 
+        email: user.email, 
+        name: user.name, 
+        role,
+        mustChangePassword: user.mustChangePassword || false
+      },
     };
   }
 
@@ -205,6 +211,24 @@ export class AuthService {
     const hashed = await bcrypt.hash(newPassword, 10);
     await (model as any).findByIdAndUpdate(payload.sub, { password: hashed });
     return { message: 'Password reset successfully.' };
+  }
+
+  // ─── Change Password (for university students) ────────────────────────
+
+  async changePassword(userId: string, currentPassword: string, newPassword: string) {
+    const user = await this.userModel.findById(userId);
+    if (!user) throw new NotFoundException('User not found.');
+
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) throw new BadRequestException('Current password is incorrect.');
+
+    const hashed = await bcrypt.hash(newPassword, 10);
+    await this.userModel.findByIdAndUpdate(userId, {
+      password: hashed,
+      mustChangePassword: false,
+    });
+
+    return { message: 'Password changed successfully. Please log in again.' };
   }
 
   // ─── Seed Super Admin ───────────────────────────────────────────────────────

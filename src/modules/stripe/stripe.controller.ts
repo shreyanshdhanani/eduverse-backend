@@ -19,7 +19,14 @@ export class StripeController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.USER)
+  @Roles(Role.UNIVERSITY)
+  @Post('create-subscription-session')
+  async createSubscriptionSession(@Body('planId') planId: string, @CurrentUser() user: any) {
+    return this.stripeService.createSubscriptionSession(planId, user._id);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.USER, Role.UNIVERSITY)
   @Post('verify-session')
   async verifySession(@Body('sessionId') sessionId: string) {
     return this.stripeService.verifySession(sessionId);

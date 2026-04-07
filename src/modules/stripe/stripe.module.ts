@@ -7,6 +7,8 @@ import { Enrollment, EnrollmentSchema } from 'src/schema/enrollment.schema';
 import { Course, CourseSchema } from 'src/schema/course.schema';
 import { User, UserSchema } from 'src/schema/student.schema';
 import { Cart, CartSchema } from 'src/schema/cart.schema';
+import { SubscriptionPlan, SubscriptionPlanSchema } from 'src/schema/subscription-plan.schema';
+import { Subscription, SubscriptionSchema } from 'src/schema/university-subscription.schema';
 import { AuthModule } from 'src/auth/auth.module';
 
 @Module({
@@ -18,6 +20,8 @@ import { AuthModule } from 'src/auth/auth.module';
       { name: Course.name, schema: CourseSchema },
       { name: User.name, schema: UserSchema },
       { name: Cart.name, schema: CartSchema },
+      { name: SubscriptionPlan.name, schema: SubscriptionPlanSchema },
+      { name: Subscription.name, schema: SubscriptionSchema },
     ]),
   ],
   controllers: [StripeController],

@@ -86,25 +86,15 @@ export class UniversityAdminService {
         return updateStatus
     }
 
-    async getSubscription(id, plan){
-        const university = await this.universityModel.findById(id)
-        if(university?._id)
-        {
-                const addSubscription = await this.subscriptionModel.findOneAndUpdate(
-                { university: university }, // Search by university ID
-                {
-                  plan: plan,
-                  startDate: new Date(),
-                  endDate: new Date(new Date().setDate(new Date().getDate() + 30)), 
-                },
-                { upsert: true, new: true } // Create if not exists, return updated doc
-              );
-              
+    // @deprecated — subscription assignment is now handled by /subscription-plans/assign
+    async getSubscription(id: string, planName: string) {
+        const university = await this.universityModel.findById(id);
+        if (!university?._id) {
+            throw new BadRequestException('University not found');
         }
-        else{
-            throw new BadRequestException('University not exists')
-        }
+        return { message: 'Use the subscription-plans/assign endpoint to assign plans to universities.' };
     }
+
     
     async findByEmail(email: string) {
         return this.universityModel.findOne({ email });
@@ -135,19 +125,28 @@ export class UniversityAdminService {
         return this.studentService.getStudentByUniversity(university)
     }
 
-    async uploadStudents(students, universityId){
-    const decoded = await this.jwtService.verify(universityId)
-    const university = await this.findUniversityByEmail(decoded.email)
-     const userPromises = students.map(async(student) => {
-        const newUser = {
-          name: student.name,
-          email: student.email,
-          universityId:university, 
-          password: 'password@123',
-        };
-        const newStudent = await this.studentService.createStudent(newUser); // Save student in the User model
-        if(newStudent._id)
-        {
+    async uploadStudents(students, universityId) {
+        const decoded = await this.jwtService.verify(universityId);
+        const university = await this.findUniversityByEmail(decoded.email);
+        
+        // CHECK SEATS REMAINING
+        const usage = await this.getSubscriptionUsage(universityId);
+        const seatsRemaining = usage.seatsRemaining ?? 0;
+        if (usage.hasSubscription && students.length > seatsRemaining) {
+            throw new Error(`Insufficient seats. You only have ${seatsRemaining} seats left.`);
+        }
+
+        const userPromises = students.map(async (student) => {
+            const newUser = {
+                name: student.name,
+                email: student.email,
+                universityId: university,
+                password: 'password@123',
+                mustChangePassword: true,
+            };
+            const newStudent = await this.studentService.createStudent(newUser);
+            
+            // Send Invitation Email
             try {
                 await this.mailService.sendMail({
                     to: newStudent.email,
@@ -158,15 +157,54 @@ export class UniversityAdminService {
                         studentEmail: newStudent.email
                     }
                 });
-                console.log(`✅ Student invitation email sent to: ${newStudent.email}`);
             } catch (mailError) {
                 console.error(`❌ Failed to send student invitation email to ${newStudent.email}:`, mailError);
             }
-        }
-    });
-    await Promise.all(userPromises);
+            
+            return newStudent;
+        });
+        
+        return Promise.all(userPromises);
+    }
 
-    return { message: 'Students uploaded successfully' };  
+    async addStudentManual(dto: any) {
+        const { name, email, password, universityToken } = dto;
+        const decoded = await this.jwtService.verify(universityToken);
+        const university = await this.findUniversityByEmail(decoded.email);
+
+        // CHECK SEATS REMAINING
+        const usage = await this.getSubscriptionUsage(universityToken);
+        const seatsRemaining = usage.seatsRemaining ?? 0;
+        if (usage.hasSubscription && seatsRemaining <= 0) {
+            throw new Error('No seats remaining in your current subscription plan.');
+        }
+
+        const newUser = {
+            name,
+            email,
+            password: password || 'password@123',
+            universityId: university,
+            mustChangePassword: true,
+        };
+
+        const newStudent = await this.studentService.createStudent(newUser);
+
+        // Send Invitation Email
+        try {
+            await this.mailService.sendMail({
+                to: newStudent.email,
+                subject: 'Welcome to EduVerse - Your Learning Platform',
+                template: 'invitation-mail',
+                context: {
+                    studentName: newStudent.name,
+                    studentEmail: newStudent.email
+                }
+            });
+        } catch (mailError) {
+            console.error(`❌ Failed to send student invitation email to ${newStudent.email}:`, mailError);
+        }
+
+        return newStudent;
     }
 
     async generateUniversityPDF(): Promise<string> {
@@ -257,7 +295,7 @@ export class UniversityAdminService {
         return {
             totalStudents,
             enrolledCount,
-            subscriptionPlan: subscription?.plan || 'No Active Plan',
+            subscriptionPlan: subscription?.planName || 'No Active Plan',
             universityName: university.universityName,
             approvalStatus: university.approvalStatus
         };
@@ -291,7 +329,74 @@ export class UniversityAdminService {
         const studentIds = students.map(s => s._id);
 
         return this.enrollmentModel.find({ userId: { $in: studentIds } })
-            .populate('userId', 'name email')
-            .populate('courseId', 'title thumbnailImage');
+            .populate('userId', 'name email freeCoursesUsed mustChangePassword')
+            .populate('courseId', 'title thumbnail');
+    }
+
+    async getActiveSubscription(token: string) {
+        const decoded = await this.jwtService.verify(token);
+        const university = await this.findUniversityByEmail(decoded.email);
+        if (!university) throw new NotFoundException('University not found');
+
+        console.log(`[FORENSIC] [UniversityAdminService] Checking active sub for: ${university.universityName} (${university.email}) ID: ${university._id}`);
+
+        const subscription = await this.subscriptionModel.findOne({ university: university._id });
+        if (!subscription) {
+            console.warn(`[FORENSIC] [UniversityAdminService] No record found in Subscription collection for university ID: ${university._id}`);
+            return { hasSubscription: false, message: 'No active subscription. Please contact admin.' };
+        }
+
+        const now = new Date();
+        const isExpired = subscription.endDate && now > subscription.endDate;
+        const daysRemaining = subscription.endDate
+            ? Math.max(0, Math.ceil((subscription.endDate.getTime() - now.getTime()) / 86400000))
+            : null;
+
+        return {
+            hasSubscription: true,
+            planName: subscription.planName,
+            price: subscription.price,
+            maxStudents: subscription.maxStudents,
+            maxCoursesPerStudent: subscription.maxCoursesPerStudent,
+            startDate: subscription.startDate,
+            endDate: subscription.endDate,
+            daysRemaining,
+            isActive: subscription.isActive && !isExpired,
+        };
+    }
+
+    async getSubscriptionUsage(token: string) {
+        const decoded = await this.jwtService.verify(token);
+        const university = await this.findUniversityByEmail(decoded.email);
+        if (!university) throw new NotFoundException('University not found');
+
+        console.log(`[FORENSIC] [UniversityAdminService] Checking sub usage for: ${university.universityName} ID: ${university._id}`);
+
+        const subscription = await this.subscriptionModel.findOne({ university: university._id });
+        if (!subscription) {
+            console.warn(`[FORENSIC] [UniversityAdminService] No record found during usage check for university ID: ${university._id}`);
+            return { hasSubscription: false };
+        }
+
+        const students = await this.studentService.getStudentByUniversity(university);
+        const studentsAdded = students.length;
+        const studentIds = students.map(s => s._id);
+
+        const totalEnrolled = await this.enrollmentModel.countDocuments({
+            userId: { $in: studentIds },
+            isUniversityStudent: true,
+        });
+
+        const totalFreeCoursesUsed = students.reduce((sum, s: any) => sum + (s.freeCoursesUsed || 0), 0);
+
+        return {
+            hasSubscription: true,
+            studentsAdded,
+            seatsRemaining: Math.max(0, subscription.maxStudents - studentsAdded),
+            maxStudents: subscription.maxStudents,
+            maxCoursesPerStudent: subscription.maxCoursesPerStudent,
+            totalEnrolled,
+            totalFreeCoursesUsed,
+        };
     }
 }

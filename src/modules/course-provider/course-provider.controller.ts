@@ -46,6 +46,11 @@ export class CourseProviderController {
     return this.courseProviderService.getCoursesByCategory(categoryId, subcategoryId);
   }
 
+  @Get('partners')
+  async getPartners() {
+    return this.courseProviderService.getPartners();
+  }
+
   // ─── Admin Only ──────────────────────────────────────────────────────────────
 
   @UseGuards(JwtAuthGuard, RolesGuard)

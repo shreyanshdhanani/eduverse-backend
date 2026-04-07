@@ -144,7 +144,27 @@ export class CourseProviderService {
     const profile = await this.courseProviderProfile
       .findOne({ courseProvider: providerId })
       .populate('courseProvider', '-password -refreshToken');
+      
+    if (!profile) {
+      const courseProvider = await this.courseProviderModel.findById(providerId).select('-password -refreshToken');
+      return { courseProvider };
+    }
     return profile;
+  }
+
+  async getPartners() {
+    // 1. Fetch profiles
+    // 2. Populate provider details but only for those with 'Approved' status
+    const profiles = await this.courseProviderProfile
+      .find()
+      .populate({
+        path: 'courseProvider',
+        match: { status: 'Approved' },
+        select: 'name email status',
+      });
+
+    // 3. Filter out profiles that don't have an approved provider (null due to match)
+    return profiles.filter((profile) => profile.courseProvider !== null);
   }
 
   async updateProfile(providerId: string, profileData: any) {
@@ -167,8 +187,16 @@ export class CourseProviderService {
     };
 
     const getProfile = await this.courseProviderProfile.findOne({ courseProvider: courseProvider._id });
+
+    // Update main CourseProvider document
+    await this.courseProviderModel.findByIdAndUpdate(providerId, {
+      name: profileData.name,
+      phone: profileData.phone,
+      address: profileData.address,
+      profilePicture: profileData.profilePicture,
+    });
+
     if (getProfile?._id) {
-      // BUG FIX: was findByIdAndUpdate(id, {data}) — wrapped in nested object
       return this.courseProviderProfile.findByIdAndUpdate(getProfile._id, data, { new: true });
     } else {
       return this.courseProviderProfile.create(data);

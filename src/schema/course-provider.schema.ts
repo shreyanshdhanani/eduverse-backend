@@ -35,6 +35,9 @@ export class CourseProvider extends Document {
 
   @Prop()
   refreshToken: string;
+
+  @Prop({ default: null })
+  profilePicture: string;
 }
 
 export const CourseProviderSchema = SchemaFactory.createForClass(CourseProvider);

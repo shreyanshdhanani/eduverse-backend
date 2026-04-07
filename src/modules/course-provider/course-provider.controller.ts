@@ -231,4 +231,13 @@ export class CourseProviderController {
   async getCourseDetails(@Param('id') id: string) {
     return this.courseProviderService.getCourseDetails(id);
   }
+
+  // --- Certificates ---
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.PROVIDER)
+  @Get('certificates')
+  async getProviderCertificates(@CurrentUser() user: any) {
+    return this.courseProviderService.getProviderCertificates(user._id);
+  }
 }

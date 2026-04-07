@@ -12,6 +12,7 @@ import { Enrollment, EnrollmentSchema } from 'src/schema/enrollment.schema';
 import { Order, OrderSchema } from 'src/schema/order.schema';
 import { AuthModule } from 'src/auth/auth.module';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
+import { CourseCertificate, CourseCertificateSchema } from 'src/schema/course-certificate.schema';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { CloudinaryService } from '../cloudinary/cloudinary.service';
       { name: CourseProviderProfile.name, schema: CourseProviderProfileSchema },
       { name: Enrollment.name, schema: EnrollmentSchema },
       { name: Order.name, schema: OrderSchema },
+      { name: CourseCertificate.name, schema: CourseCertificateSchema },
     ]),
   ],
   controllers: [CourseProviderController],

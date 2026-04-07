@@ -13,6 +13,7 @@ import { CourseProviderProfile } from 'src/schema/course-provider-profile.schema
 import { Enrollment } from 'src/schema/enrollment.schema';
 import { Order, PaymentStatus } from 'src/schema/order.schema';
 import { ConfigService } from '@nestjs/config';
+import { CourseCertificate } from 'src/schema/course-certificate.schema';
 
 @Injectable()
 export class CourseProviderService {
@@ -22,6 +23,7 @@ export class CourseProviderService {
     @InjectModel(CourseProviderProfile.name) private courseProviderProfile: Model<CourseProviderProfile>,
     @InjectModel(Enrollment.name) private enrollmentModel: Model<Enrollment>,
     @InjectModel(Order.name) private orderModel: Model<Order>,
+    @InjectModel(CourseCertificate.name) private certificateModel: Model<CourseCertificate>,
     private readonly categoryService: CategoryService,
     private readonly subcategoryService: SubCategoryService,
     private readonly topicService: TopicService,
@@ -355,5 +357,14 @@ export class CourseProviderService {
       coursesBreakdown,
     };
   }
-}
 
+  // ─── Certificates ────────────────────────────────────────────────────────────
+
+  async getProviderCertificates(providerId: string) {
+    return this.certificateModel
+      .find({ courseProviderId: new Types.ObjectId(providerId) })
+      .populate('courseId', 'title')
+      .populate('studentId', 'name email')
+      .sort({ issuedAt: -1 });
+  }
+}

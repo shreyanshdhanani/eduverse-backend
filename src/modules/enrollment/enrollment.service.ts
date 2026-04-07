@@ -1,9 +1,12 @@
-import { Injectable, HttpException, HttpStatus, ForbiddenException } from '@nestjs/common';
+import { Injectable, HttpException, HttpStatus, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { User } from 'src/schema/student.schema';
 import { Enrollment } from 'src/schema/enrollment.schema';
 import { Subscription } from 'src/schema/university-subscription.schema';
+import { CourseCertificate } from 'src/schema/course-certificate.schema';
+import { Course } from 'src/schema/course.schema';
+import { CourseProvider } from 'src/schema/course-provider.schema';
 
 @Injectable()
 export class EnrollmentService {
@@ -11,6 +14,9 @@ export class EnrollmentService {
     @InjectModel(User.name) private userModel: Model<User>,
     @InjectModel(Enrollment.name) private enrollmentModel: Model<Enrollment>,
     @InjectModel(Subscription.name) private subscriptionModel: Model<Subscription>,
+    @InjectModel(CourseCertificate.name) private certificateModel: Model<CourseCertificate>,
+    @InjectModel(Course.name) private courseModel: Model<Course>,
+    @InjectModel(CourseProvider.name) private courseProviderModel: Model<CourseProvider>,
   ) {}
 
   async enrollUserInCourse(userId: string, courseId: string) {
@@ -34,7 +40,6 @@ export class EnrollmentService {
 
       if (!subscription) {
         console.warn(`[FORENSIC] [EnrollmentService] No active subscription found for universityId: ${user.universityId}`);
-        // Log all subscriptions for this universityId just to see what exists
         const allSubs = await this.subscriptionModel.find({ university: user.universityId });
         console.log(`[FORENSIC] [EnrollmentService] Records found for this universityId: ${allSubs.length}`);
         
@@ -69,8 +74,8 @@ export class EnrollmentService {
 
       // ─── Enroll and increment counter ─────────────────────────────────────
       const newEnrollment = new this.enrollmentModel({
-        userId: user._id,
-        courseId,
+        userId: new Types.ObjectId(userId),
+        courseId: new Types.ObjectId(courseId),
         isUniversityStudent: true,
       });
       await newEnrollment.save();
@@ -95,7 +100,6 @@ export class EnrollmentService {
   }
 
   async getEnrolledCourses(userId: string) {
-    // Ensure userId is an ObjectId for robust querying
     const query = { userId: new Types.ObjectId(userId) };
     
     const enrollments = await this.enrollmentModel
@@ -120,9 +124,137 @@ export class EnrollmentService {
           topic: course.topic,
           courseProvider: course.courseProvider,
           progress: enroll.progress || 0,
+          certificateIssued: enroll.certificateIssued || false,
         };
       });
 
     return { courses };
+  }
+
+  // ─── Progress Tracking ───────────────────────────────────────────────────────
+
+  async updateProgress(userId: string, courseId: string, progress: number) {
+    const userObjectId = new Types.ObjectId(userId);
+    const courseObjectId = new Types.ObjectId(courseId);
+
+    console.log(`[DEBUG] Updating progress: user=${userId}, course=${courseId}, progress=${progress}`);
+
+    // Robust lookup: Check both ObjectId and string versions to handle legacy data
+    let enrollment = await this.enrollmentModel.findOne({
+      userId: userObjectId,
+      courseId: courseObjectId,
+    });
+
+    if (!enrollment) {
+      // Direct raw query to bypass Mongoose's automatic casting/enforcement
+      enrollment = await this.enrollmentModel.findOne({
+        $or: [
+          { userId: userId as any, courseId: courseId as any },
+          { userId: userId as any, courseId: courseObjectId },
+          { userId: userObjectId, courseId: courseId as any }
+        ]
+      });
+    }
+
+    if (!enrollment) {
+      console.warn(`[DEBUG] Enrollment NOT FOUND for user=${userId}, course=${courseId}`);
+      throw new NotFoundException('Enrollment not found.');
+    }
+
+    // Only advance progress, never go backward
+    const newProgress = Math.max(enrollment.progress || 0, Math.min(100, progress));
+    enrollment.progress = newProgress;
+
+    if (newProgress >= 100 && enrollment.status !== 'completed') {
+      enrollment.status = 'completed';
+    }
+
+    await enrollment.save();
+
+    return { progress: newProgress, status: enrollment.status };
+  }
+
+  // ─── Certificate Issuance ────────────────────────────────────────────────────
+
+  async issueCertificate(userId: string, courseId: string) {
+    const userObjectId = new Types.ObjectId(userId);
+    const courseObjectId = new Types.ObjectId(courseId);
+
+    // Robust lookup
+    let enrollment = await this.enrollmentModel.findOne({
+      userId: userObjectId,
+      courseId: courseObjectId,
+    });
+
+    if (!enrollment) {
+      enrollment = await this.enrollmentModel.findOne({
+        $or: [
+          { userId: userId as any, courseId: courseId as any },
+          { userId: userId as any, courseId: courseObjectId },
+          { userId: userObjectId, courseId: courseId as any }
+        ]
+      });
+    }
+
+    if (!enrollment) {
+      throw new NotFoundException('Enrollment not found.');
+    }
+
+    // Check if already issued
+    if (enrollment.certificateIssued) {
+      const existing = await this.certificateModel.findOne({
+        studentId: userObjectId,
+        courseId: courseObjectId,
+      }).populate('courseId courseProviderId studentId');
+      return existing;
+    }
+
+    // Fetch course and student details
+    const course = await this.courseModel.findById(courseId).populate('courseProvider');
+    if (!course) throw new NotFoundException('Course not found.');
+
+    const student = await this.userModel.findById(userId);
+    if (!student) throw new NotFoundException('Student not found.');
+
+    const provider = course.courseProvider as any;
+
+    // Create certificate
+    const certificate = await this.certificateModel.create({
+      enrollmentId: enrollment._id,
+      courseId: new Types.ObjectId(courseId),
+      studentId: new Types.ObjectId(userId),
+      courseProviderId: provider._id || provider,
+      universityId: student.universityId || null,
+      courseTitle: course.title,
+      studentName: student.name,
+      providerName: provider.name || 'Course Provider',
+      issuedAt: new Date(),
+    });
+
+    // Mark enrollment as certificate issued
+    await this.enrollmentModel.findByIdAndUpdate(enrollment._id, {
+      certificateIssued: true,
+      status: 'completed',
+      progress: 100,
+    });
+
+    return certificate;
+  }
+
+  async getCertificate(userId: string, courseId: string) {
+    const certificate = await this.certificateModel.findOne({
+      studentId: new Types.ObjectId(userId),
+      courseId: new Types.ObjectId(courseId),
+    });
+
+    return certificate;
+  }
+
+  // ─── Global: All certificates for a student ──────────────────────────────────
+
+  async getStudentCertificates(userId: string) {
+    return this.certificateModel
+      .find({ studentId: new Types.ObjectId(userId) })
+      .sort({ issuedAt: -1 });
   }
 }

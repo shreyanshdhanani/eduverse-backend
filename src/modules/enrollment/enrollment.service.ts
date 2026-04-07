@@ -1,6 +1,6 @@
 import { Injectable, HttpException, HttpStatus, ForbiddenException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { User } from 'src/schema/student.schema';
 import { Enrollment } from 'src/schema/enrollment.schema';
 import { Subscription } from 'src/schema/university-subscription.schema';
@@ -95,8 +95,11 @@ export class EnrollmentService {
   }
 
   async getEnrolledCourses(userId: string) {
+    // Ensure userId is an ObjectId for robust querying
+    const query = { userId: new Types.ObjectId(userId) };
+    
     const enrollments = await this.enrollmentModel
-      .find({ userId })
+      .find(query)
       .populate('courseId');
 
     const courses = enrollments

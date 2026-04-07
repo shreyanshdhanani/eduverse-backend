@@ -49,9 +49,17 @@ export class UniversityAdminService {
         }
     }
 
-    async getAll()
-    {
-        return await this.universityModel.find()
+    async getAll() {
+        const universities = await this.universityModel.find().lean();
+        const activeSubs = await this.subscriptionModel.find({ isActive: true }).lean();
+        
+        const subsMap = new Map();
+        activeSubs.forEach(sub => subsMap.set(sub.university.toString(), sub));
+
+        return universities.map(u => ({
+            ...u,
+            activeSubscription: subsMap.get(u._id.toString()) || null
+        }));
     }
 
     async changeStatus(id,status)
@@ -296,6 +304,10 @@ export class UniversityAdminService {
             totalStudents,
             enrolledCount,
             subscriptionPlan: subscription?.planName || 'No Active Plan',
+            subscriptionDetails: subscription ? {
+                maxStudents: subscription.maxStudents,
+                maxCoursesPerStudent: subscription.maxCoursesPerStudent
+            } : null,
             universityName: university.universityName,
             approvalStatus: university.approvalStatus
         };

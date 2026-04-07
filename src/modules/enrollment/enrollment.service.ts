@@ -31,11 +31,14 @@ export class EnrollmentService {
       }
 
       // ─── Validate university subscription ────────────────────────────────
-      console.log(`[FORENSIC] [EnrollmentService] Student ${user.name} (${user.email}) universityId: ${user.universityId}`);
-      
+      const universityId = user.universityId.toString();
+      const universityObjectId = new Types.ObjectId(universityId);
+
       const subscription = await this.subscriptionModel.findOne({
-        university: user.universityId.toString(),
-        isActive: true,
+        $or: [
+          { university: universityObjectId, isActive: true },
+          { university: universityId as any, isActive: true }
+        ]
       });
 
       if (!subscription) {

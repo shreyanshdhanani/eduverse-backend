@@ -94,16 +94,34 @@ export class EnrollmentService {
   }
 
   async enrollAfterPayment(userId: string, courseId: string) {
-    const existing = await this.enrollmentModel.findOne({ userId, courseId });
+    const userObjectId = new Types.ObjectId(userId);
+    const courseObjectId = new Types.ObjectId(courseId);
+
+    const existing = await this.enrollmentModel.findOne({
+      $or: [
+        { userId: userObjectId, courseId: courseObjectId },
+        { userId: userId as any, courseId: courseId as any }
+      ]
+    });
     if (existing) return existing;
-    return this.enrollmentModel.create({ userId, courseId, isUniversityStudent: false });
+
+    return this.enrollmentModel.create({
+      userId: userObjectId,
+      courseId: courseObjectId,
+      isUniversityStudent: false
+    });
   }
 
   async getEnrolledCourses(userId: string) {
-    const query = { userId: new Types.ObjectId(userId) };
+    const userObjectId = new Types.ObjectId(userId);
     
     const enrollments = await this.enrollmentModel
-      .find(query)
+      .find({
+        $or: [
+          { userId: userObjectId },
+          { userId: userId as any }
+        ]
+      })
       .populate('courseId');
 
     const courses = enrollments

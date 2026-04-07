@@ -42,7 +42,7 @@ export class StripeService {
       if (!courseDoc) continue;
 
       const order = await this.orderModel.create({
-        userId,
+        userId: new Types.ObjectId(userId),
         courseId: courseDoc._id,
         providerId: courseDoc.courseProvider,
         amount: course.price || 0,
@@ -192,15 +192,29 @@ export class StripeService {
       );
 
       if (order) {
-        // Enroll user in course
-        const existing = await this.enrollmentModel.findOne({
-          userId: order.userId,
-          courseId: order.courseId,
+        const orderUserId = new Types.ObjectId(order.userId as any);
+        const orderCourseId = new Types.ObjectId(order.courseId as any);
+
+        // Robust lookup for enrollment
+        let enrollment = await this.enrollmentModel.findOne({
+          userId: orderUserId,
+          courseId: orderCourseId,
         });
-        if (!existing) {
+
+        if (!enrollment) {
+          enrollment = await this.enrollmentModel.findOne({
+            $or: [
+              { userId: order.userId as any, courseId: order.courseId as any },
+              { userId: order.userId as any, courseId: orderCourseId },
+              { userId: orderUserId, courseId: order.courseId as any }
+            ]
+          });
+        }
+
+        if (!enrollment) {
           await this.enrollmentModel.create({
-            userId: order.userId,
-            courseId: order.courseId,
+            userId: orderUserId,
+            courseId: orderCourseId,
             isUniversityStudent: false,
           });
         }

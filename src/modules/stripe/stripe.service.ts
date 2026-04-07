@@ -56,7 +56,7 @@ export class StripeService {
       mode: 'payment',
       line_items: courses.map((course) => ({
         price_data: {
-          currency: 'inr',
+          currency: 'usd',
           product_data: { name: course.title },
           unit_amount: Number(course.price || 0) * 100,
         },
@@ -97,7 +97,7 @@ export class StripeService {
       mode: 'payment',
       line_items: [{
         price_data: {
-          currency: 'inr',
+          currency: 'usd',
           product_data: { 
             name: plan.planName,
             description: `University Subscription: ${plan.maxStudents} students, ${plan.maxCoursesPerStudent} courses per student`,
